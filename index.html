@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vulnerability Monitor WebApp</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        textarea, input[type=text] { width: 100%; }
+        .report { background: #f8f8f8; border: 1px solid #ccc; padding: 20px; margin-top: 20px; white-space: pre-wrap; }
+        .btn { background: #2196F3; color: white; padding: 10px 20px; border: none; cursor: pointer; }
+        .btn:hover { background: #1976D2; }
+    </style>
+    <script>
+    function startScan(event) {
+        event.preventDefault();
+        const email = document.getElementById('email').value;
+        const websites = document.getElementById('websites').value.split('\n').map(w => w.trim()).filter(w => w);
+        document.getElementById('report').innerHTML = 'Scanning...';
+        fetch('http://localhost:5000/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, websites })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.vulnerabilities && data.vulnerabilities.length > 0) {
+                let html = '<h2>Vulnerability Report</h2>';
+                data.vulnerabilities.forEach(function(vuln, i) {
+                    html += `<b>${i+1}. Product Name:</b> ${vuln['Product Name'] || 'N/A'}<br>`;
+                    html += `&nbsp;&nbsp;Product Version: ${vuln['Product Version'] || 'NA'}<br>`;
+                    html += `&nbsp;&nbsp;OEM Name: ${vuln['OEM Name'] || 'N/A'}<br>`;
+                    html += `&nbsp;&nbsp;Severity Level: ${vuln['Severity Level'] || 'N/A'}<br>`;
+                    html += `&nbsp;&nbsp;Vulnerability: ${vuln['Vulnerability'] || 'N/A'}<br>`;
+                    html += `&nbsp;&nbsp;Mitigation Strategy: ${vuln['Mitigation Strategy'] || 'N/A'}<br>`;
+                    html += `&nbsp;&nbsp;Published Date: ${vuln['Published Date'] || 'N/A'}<br>`;
+                    html += `&nbsp;&nbsp;Unique ID: ${vuln['Unique ID'] || 'N/A'}<br>`;
+                    if (vuln['CVE Details']) {
+                        html += `&nbsp;&nbsp;CVE Description: ${vuln['CVE Details']['description'] || 'N/A'}<br>`;
+                        html += `&nbsp;&nbsp;CVE Published: ${vuln['CVE Details']['published'] || 'N/A'}<br>`;
+                        html += `&nbsp;&nbsp;CVE Modified: ${vuln['CVE Details']['modified'] || 'N/A'}<br>`;
+                    }
+                    html += '<hr>';
+                });
+                document.getElementById('report').innerHTML = html;
+            } else {
+                document.getElementById('report').innerHTML = '<b>No vulnerabilities found.</b>';
+            }
+        })
+        .catch(err => {
+            document.getElementById('report').innerHTML = 'Error: ' + err;
+        });
+    }
+    </script>
+</head>
+<body>
+    <h1>Vulnerability Monitor WebApp</h1>
+    <form onsubmit="startScan(event)">
+        <label>Target Email Address:</label><br>
+        <input type="text" id="email" required><br><br>
+        <label>Websites to Scan (one per line):</label><br>
+        <textarea id="websites" rows="5" required></textarea><br><br>
+        <button class="btn" type="submit">Start Monitoring</button>
+    </form>
+    <div class="report" id="report"></div>
+</body>
+</html>
